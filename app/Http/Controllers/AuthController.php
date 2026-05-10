@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
-
+use App\Models\HistorialAcciones;
 class AuthController extends Controller
 {
     public function login(Request $request)
@@ -30,7 +30,13 @@ class AuthController extends Controller
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
-
+HistorialAcciones::create([
+    'identificacion_usuario' => $user->identificacion_usuario,
+    'accion'                 => 'Login',
+    'tabla_afectada'         => 'users',
+    'id_registro'            => $user->identificacion_usuario,
+    'fecha_accion'           => now(),
+]);
         return response()->json([
             'token' => $token,
             'usuario' => [
