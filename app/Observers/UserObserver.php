@@ -3,28 +3,15 @@
 namespace App\Observers;
 
 use App\Models\User;
-use App\Models\HistorialAcciones;
-use Illuminate\Support\Facades\Auth;
+use App\Interfaces\HistorialServiceInterface;
 
 class UserObserver
 {
-    private function registrar($accion, $id)
-    {
-        $usuario = Auth::user();
-        if (!$usuario) return;
-
-        HistorialAcciones::create([
-            'identificacion_usuario' => $usuario->identificacion_usuario,
-            'accion'                 => $accion,
-            'tabla_afectada'         => 'users',
-            'id_registro'            => $id,
-            'fecha_accion'           => now(),
-        ]);
-    }
+    public function __construct(private HistorialServiceInterface $historial) {}
 
     public function created(User $user): void
     {
-        $this->registrar('Crear usuario', $user->identificacion_usuario);
+        $this->historial->registrar('Crear usuario', 'users', $user->identificacion_usuario);
     }
 
     public function updated(User $user): void
@@ -34,11 +21,11 @@ class UserObserver
         } else {
             $accion = 'Editar usuario';
         }
-        $this->registrar($accion, $user->identificacion_usuario);
+        $this->historial->registrar($accion, 'users', $user->identificacion_usuario);
     }
 
     public function deleted(User $user): void
     {
-        $this->registrar('Eliminar usuario', $user->identificacion_usuario);
+        $this->historial->registrar('Eliminar usuario', 'users', $user->identificacion_usuario);
     }
 }
