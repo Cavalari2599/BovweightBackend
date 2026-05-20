@@ -50,8 +50,21 @@ Route::middleware(['auth:sanctum', 'rol:veterinario'])->group(function () {
 
 Route::middleware(['auth:sanctum', 'rol:ganadero'])->group(function () {
     Route::get('/ganadero/fincas', [GanaderoController::class, 'getFincas']);
+    Route::post('/ganadero/fincas', [GanaderoController::class, 'crearFinca']);
+    Route::put('/ganadero/fincas/{idFinca}', [GanaderoController::class, 'editarFinca']);
     Route::get('/ganadero/fincas/{idFinca}/animales', [GanaderoController::class, 'getAnimales']);
     Route::get('/ganadero/fincas/{idFinca}/resumen', [GanaderoController::class, 'getResumenFinca']);
+    Route::post('/ganadero/fincas/{idFinca}/animales', [GanaderoController::class, 'crearAnimal']);
+    Route::put('/ganadero/animales/{nArete}', [GanaderoController::class, 'editarAnimal']);
     Route::get('/ganadero/animales/{nArete}/pesajes', [GanaderoController::class, 'getPesajes']);
     Route::get('/ganadero/animales/{nArete}/tratamientos', [GanaderoController::class, 'getTratamientos']);
+    Route::get('/ganadero/veterinarios', [GanaderoController::class, 'getVeterinarios']);
+    Route::get('/ganadero/ayudantes', [GanaderoController::class, 'getAyudantes']);
+    Route::post('/ganadero/fincas/{idFinca}/veterinarios', [GanaderoController::class, 'asignarVeterinario']);
+    Route::delete('/ganadero/fincas/{idFinca}/veterinarios', [GanaderoController::class, 'desasignarVeterinario']);
+    Route::post('/ganadero/fincas/{idFinca}/ayudantes', [GanaderoController::class, 'asignarAyudante']);
+    Route::delete('/ganadero/ayudantes', [GanaderoController::class, 'desasignarAyudante']);
+    Route::get('/ganadero/animales/{nArete}', [GanaderoController::class, 'getAnimal']);
+    Route::get('/ganadero/fincas/{idFinca}/veterinarios', [GanaderoController::class, 'getVeterinariosAsignados']);
+Route::get('/ganadero/fincas/{idFinca}/ayudantes', [GanaderoController::class, 'getAyudantesAsignados']);
 });
