@@ -2,31 +2,58 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Database\Factories\UserFactory;
-use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Attributes\Hidden;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password'])]
-#[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    protected $table = 'usuarios';
+    protected $primaryKey = 'identificacion_usuario';
+    public $incrementing = false;
+    protected $keyType = 'int';
+    public $timestamps = false;
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
+    protected $fillable = [
+        'identificacion_usuario',
+        'correo',
+        'clave',
+        'id_rol',
+        'estado',
+        'nombre_usuario',
+        'apellido1_usuario',
+        'apellido2_usuario',
+    ];
+
+    protected $hidden = [
+        'clave',
+    ];
+
+    public function rol()
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->belongsTo(Rol::class, 'id_rol', 'id_rol');
+    }
+
+    public function fincas()
+    {
+        return $this->hasMany(Finca::class, 'identificacion_usuario', 'identificacion_usuario');
+    }
+
+    public function ayudante()
+    {
+        return $this->hasOne(Ayudante::class, 'identificacion_usuario', 'identificacion_usuario');
+    }
+
+    public function atiende()
+    {
+        return $this->hasMany(Atiende::class, 'identificacion_usuario', 'identificacion_usuario');
+    }
+
+    public function tratamientos()
+    {
+        return $this->hasMany(Tratamiento::class, 'identificacion_usuario', 'identificacion_usuario');
+    }
+
+    public function historial()
+    {
+        return $this->hasMany(HistorialAcciones::class, 'identificacion_usuario', 'identificacion_usuario');
     }
 }
