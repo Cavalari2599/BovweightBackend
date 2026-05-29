@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Models\User;
 use App\Models\HistorialAcciones;
@@ -100,19 +101,85 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $nuevaContrasena = Str::random(10);
+        $token = Str::random(64);
 
-        $usuario->update([
-            'clave' => Hash::make($nuevaContrasena),
-        ]);
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $request->correo],
+            [
+                'token'      => Hash::make($token),
+                'created_at' => now(),
+            ]
+        );
 
-        Mail::raw("Tu nueva contraseña temporal es: $nuevaContrasena — Por favor cámbiala después de iniciar sesión.", function ($message) use ($request) {
-            $message->to($request->correo)
-                    ->subject('Restablecimiento de contraseña - BovWeight CR');
-        });
+        $enlace = "http://localhost:5173/reset-password?token={$token}&correo={$request->correo}";
+
+        Mail::raw(
+            "Recibiste una solicitud para restablecer tu contraseña.\n\nHaz clic en el siguiente enlace para continuar:\n\n{$enlace}\n\nEste enlace expira en 60 minutos.\n\nSi no solicitaste esto, ignora este correo.",
+            function ($message) use ($request) {
+                $message->to($request->correo)
+                        ->subject('Restablecimiento de contraseña - BovWeight CR');
+            }
+        );
 
         return response()->json([
-            'mensaje' => 'Se ha enviado una nueva contraseña al correo proporcionado',
+            'mensaje' => 'Se ha enviado un enlace de restablecimiento al correo proporcionado',
+        ], 200);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        \Log::info('Reset password request', [
+    'correo' => $request->correo,
+    'token' => $request->token,
+]);
+        $validator = Validator::make($request->all(), [
+            'correo' => 'required|email',
+            'token'  => 'required|string',
+            'clave'  => 'required|string|min:8|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'mensaje' => 'Validación fallida',
+                'errores' => $validator->errors(),
+            ], 422);
+        }
+
+        $registro = DB::table('password_reset_tokens')
+            ->where('email', $request->correo)
+            ->first();
+
+        if (!$registro || !Hash::check($request->token, $registro->token)) {
+            return response()->json([
+                'mensaje' => 'El enlace de restablecimiento es inválido o ha expirado',
+            ], 422);
+        }
+
+        if (now()->diffInMinutes($registro->created_at) > 60) {
+            DB::table('password_reset_tokens')->where('email', $request->correo)->delete();
+            return response()->json([
+                'mensaje' => 'El enlace de restablecimiento ha expirado',
+            ], 422);
+        }
+
+        $usuario = User::where('correo', $request->correo)->first();
+
+        $usuario->update([
+            'clave' => Hash::make($request->clave),
+        ]);
+
+        DB::table('password_reset_tokens')->where('email', $request->correo)->delete();
+
+        HistorialAcciones::create([
+            'identificacion_usuario' => $usuario->identificacion_usuario,
+            'accion'                 => 'Restablecimiento de contraseña',
+            'tabla_afectada'         => 'usuarios',
+            'id_registro'            => $usuario->identificacion_usuario,
+            'fecha_accion'           => now(),
+        ]);
+
+        return response()->json([
+            'mensaje' => 'Contraseña restablecida exitosamente',
         ], 200);
     }
 }
