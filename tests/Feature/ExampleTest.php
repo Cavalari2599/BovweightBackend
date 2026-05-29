@@ -14,6 +14,7 @@ class ExampleTest extends TestCase
     {
         $response = $this->get('/');
 
-        $response->assertStatus(200);
+        // Se cambió un 200 por 400 para hacer que la prueba falle
+        $response->assertStatus(400);
     }
 }
