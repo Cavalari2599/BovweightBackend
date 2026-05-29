@@ -35,7 +35,7 @@ jobs:
           extensions: mbstring, pdo, pdo_mysql
 
       - name: Instalar dependencias
-        run: composer install --prefer-dist --no-progress
+        run: composer update --prefer-dist --no-progress
 
       - name: Copiar .env
         run: cp .env.example .env
