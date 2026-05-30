@@ -10,11 +10,9 @@ use App\Http\Controllers\FincaController;
 use App\Http\Controllers\VeterinarioController;
 use App\Http\Controllers\GanaderoController;
 
-
-
-
-
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -32,9 +30,8 @@ Route::middleware(['auth:sanctum', 'rol:tecnico'])->group(function () {
     });
     Route::get('/historial', [HistorialController::class, 'index']);
     Route::get('/dashboard', [DashboardController::class, 'index']);
-     Route::get('/fincas', [FincaController::class, 'index']);
+    Route::get('/fincas', [FincaController::class, 'index']);
 });
-
 
 Route::middleware(['auth:sanctum', 'rol:veterinario'])->group(function () {
     Route::get('/veterinario/fincas', [VeterinarioController::class, 'getFincas']);
@@ -44,9 +41,6 @@ Route::middleware(['auth:sanctum', 'rol:veterinario'])->group(function () {
     Route::put('/veterinario/tratamientos/{id}', [VeterinarioController::class, 'updateTratamiento']);
     Route::get('/veterinario/animales/{nArete}/pesajes', [VeterinarioController::class, 'getPesajes']);
 });
-
-
-
 
 Route::middleware(['auth:sanctum', 'rol:ganadero'])->group(function () {
     Route::get('/ganadero/fincas', [GanaderoController::class, 'getFincas']);
@@ -66,5 +60,5 @@ Route::middleware(['auth:sanctum', 'rol:ganadero'])->group(function () {
     Route::delete('/ganadero/ayudantes', [GanaderoController::class, 'desasignarAyudante']);
     Route::get('/ganadero/animales/{nArete}', [GanaderoController::class, 'getAnimal']);
     Route::get('/ganadero/fincas/{idFinca}/veterinarios', [GanaderoController::class, 'getVeterinariosAsignados']);
-Route::get('/ganadero/fincas/{idFinca}/ayudantes', [GanaderoController::class, 'getAyudantesAsignados']);
+    Route::get('/ganadero/fincas/{idFinca}/ayudantes', [GanaderoController::class, 'getAyudantesAsignados']);
 });
