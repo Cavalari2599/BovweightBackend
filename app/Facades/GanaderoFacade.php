@@ -10,10 +10,13 @@ use App\Models\Atiende;
 use App\Models\Ayudante;
 use App\Models\User;
 use App\Strategies\OrdenarAnimalesStrategy;
+use App\Interfaces\HistorialServiceInterface;
 use Illuminate\Support\Collection;
 
 class GanaderoFacade
 {
+    public function __construct(private HistorialServiceInterface $historial) {}
+
     public function getFincas(int $idUsuario): Collection
     {
         return Finca::where('identificacion_usuario', $idUsuario)->get();
@@ -51,6 +54,7 @@ class GanaderoFacade
             'peso'            => $datos['peso'] ?? null,
             'estado'          => $datos['estado'],
             'fecha_nacimiento'=> $datos['fecha_nacimiento'] ?? null,
+            'foto_animal'     => $datos['foto_animal'] ?? null,
             'id_finca'        => $idFinca,
         ]);
     }
@@ -100,20 +104,30 @@ class GanaderoFacade
     {
         Atiende::where('identificacion_usuario', $idVeterinario)
             ->where('id_finca', $idFinca)
-            ->delete();
+            ->get()
+            ->each(fn ($atiende) => $atiende->delete()); // delete por instancia -> dispara AtiendeObserver
     }
 
     public function asignarAyudante(int $idFinca, int $idAyudante): void
     {
-        Ayudante::firstOrCreate([
-            'identificacion_usuario' => $idAyudante,
-            'id_finca'               => $idFinca,
-        ]);
+        // Un ayudante pertenece a una sola finca (PK = identificacion_usuario).
+        // updateOrCreate reasigna sin violar la PK.
+        Ayudante::updateOrCreate(
+            ['identificacion_usuario' => $idAyudante],
+            ['id_finca' => $idFinca],
+        );
     }
 
     public function desasignarAyudante(int $idAyudante): void
     {
-        Ayudante::where('identificacion_usuario', $idAyudante)->delete();
+        Ayudante::where('identificacion_usuario', $idAyudante)
+            ->get()
+            ->each(fn ($ayudante) => $ayudante->delete()); // delete por instancia -> dispara AyudanteObserver
+    }
+
+    public function registrarReporte(int $idFinca, int $cantidad): void
+    {
+        $this->historial->registrar("Generar reporte ({$cantidad} animales)", 'reportes', $idFinca);
     }
 
     public function getVeterinarios(): Collection
@@ -123,7 +137,11 @@ class GanaderoFacade
 
     public function getAyudantes(): Collection
     {
-        return User::where('id_rol', 3)->where('estado', true)->get();
+        // Solo ayudantes libres (sin finca asignada).
+        return User::where('id_rol', 3)
+            ->where('estado', true)
+            ->whereDoesntHave('ayudante')
+            ->get();
     }
     public function getAnimal(string $nArete): Animal
 {
