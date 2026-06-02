@@ -65,6 +65,8 @@ Route::middleware(['auth:sanctum', 'rol:ganadero'])->group(function () {
     Route::post('/ganadero/fincas/{idFinca}/ayudantes', [GanaderoController::class, 'asignarAyudante']);
     Route::delete('/ganadero/ayudantes', [GanaderoController::class, 'desasignarAyudante']);
     Route::get('/ganadero/animales/{nArete}', [GanaderoController::class, 'getAnimal']);
+    Route::get('/ganadero/animales/{nArete}/foto', [GanaderoController::class, 'getFoto']);
+    Route::post('/ganadero/reportes', [GanaderoController::class, 'registrarReporte']);
     Route::get('/ganadero/fincas/{idFinca}/veterinarios', [GanaderoController::class, 'getVeterinariosAsignados']);
 Route::get('/ganadero/fincas/{idFinca}/ayudantes', [GanaderoController::class, 'getAyudantesAsignados']);
 });
