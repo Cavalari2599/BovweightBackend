@@ -16,7 +16,18 @@ class AnimalObserver
 
     public function updated(Animal $animal): void
     {
-        $this->historial->registrar('Editar animal', 'animales', $animal->n_arete);
+        // Distingue la accion de recordatorio del resto de ediciones, para auditar claro.
+        $cambios = array_keys($animal->getChanges());
+        $soloRecordatorio = $cambios !== []
+            && array_diff($cambios, ['proximo_pesaje', 'repetir_cada_dias']) === [];
+
+        if ($soloRecordatorio) {
+            $accion = $animal->proximo_pesaje ? 'Programar pesaje' : 'Quitar recordatorio de pesaje';
+        } else {
+            $accion = 'Editar animal';
+        }
+
+        $this->historial->registrar($accion, 'animales', $animal->n_arete);
     }
 
     public function deleted(Animal $animal): void

@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    // API FastAPI de estimacion de peso por foto (BovweightML).
+    'ml' => [
+        'url' => env('ML_API_URL', 'http://127.0.0.1:8001'),
+    ],
+
 ];
