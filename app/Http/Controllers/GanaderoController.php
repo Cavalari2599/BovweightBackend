@@ -58,6 +58,7 @@ class GanaderoController extends Controller
             'n_arete'          => 'required|string|max:50|unique:animales,n_arete',
             'nombre_animal'    => 'nullable|string|max:100',
             'raza'             => 'nullable|string|max:100',
+            'sexo'             => 'nullable|in:M,F',
             'edad'             => 'nullable|integer',
             'peso'             => 'nullable|numeric',
             'estado'           => 'required|string|max:50',
@@ -82,6 +83,7 @@ class GanaderoController extends Controller
         $request->validate([
             'nombre_animal'    => 'nullable|string|max:100',
             'raza'             => 'nullable|string|max:100',
+            'sexo'             => 'nullable|in:M,F',
             'edad'             => 'nullable|integer',
             'peso'             => 'nullable|numeric',
             'estado'           => 'sometimes|string|max:50',
@@ -107,6 +109,40 @@ class GanaderoController extends Controller
         return response()->json($pesajes, 200);
     }
 
+    public function estimarPeso(Request $request)
+    {
+        $request->validate([
+            'foto' => 'required|image|mimes:jpeg,jpg,png,webp|max:8192',
+            'sexo' => 'required|in:M,F',
+        ]);
+
+        try {
+            $peso = $this->facade->estimarPeso($request->file('foto'), $request->sexo);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['peso_estimado_kg' => $peso], 200);
+    }
+
+    public function crearPesaje(Request $request, string $nArete)
+    {
+        $request->validate([
+            'peso_aproximado' => 'required|numeric|min:1',
+            'foto'            => 'nullable|image|mimes:jpeg,jpg,png,webp|max:8192',
+            'sexo'            => 'nullable|in:M,F',
+        ]);
+
+        $pesaje = $this->facade->crearPesaje(
+            $nArete,
+            (float) $request->peso_aproximado,
+            $request->file('foto'),
+            $request->sexo,
+        );
+
+        return response()->json(['message' => 'Pesaje registrado correctamente.', 'pesaje' => $pesaje], 201);
+    }
+
     public function getTratamientos(Request $request, string $nArete)
     {
         $tratamientos = $this->facade->getTratamientos($nArete);
@@ -117,6 +153,32 @@ class GanaderoController extends Controller
     {
         $resumen = $this->facade->getResumenFinca($idFinca);
         return response()->json($resumen, 200);
+    }
+
+    public function getRecordatorios(Request $request)
+    {
+        return response()->json($this->facade->getRecordatorios($request->user()->identificacion_usuario), 200);
+    }
+
+    public function getTodosAnimales(Request $request)
+    {
+        return response()->json($this->facade->getTodosAnimales($request->user()->identificacion_usuario), 200);
+    }
+
+    public function programarPesaje(Request $request, string $nArete)
+    {
+        $request->validate([
+            'proximo_pesaje'    => 'nullable|date',
+            'repetir_cada_dias' => 'nullable|integer|in:7,15,30,60,90',
+        ]);
+
+        $animal = $this->facade->programarPesaje(
+            $nArete,
+            $request->proximo_pesaje,
+            $request->repetir_cada_dias,
+        );
+
+        return response()->json(['message' => 'Recordatorio actualizado.', 'animal' => $animal], 200);
     }
 
     public function getVeterinarios()
@@ -175,10 +237,15 @@ public function registrarReporte(Request $request)
 public function getFoto(Request $request, string $nArete)
 {
     $animal = $this->facade->getAnimal($nArete);
-    if (!$animal->foto_animal || !\Illuminate\Support\Facades\Storage::disk('public')->exists($animal->foto_animal)) {
+
+    /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
+    $disk = \Illuminate\Support\Facades\Storage::disk('public');
+
+    if (!$animal->foto_animal || !$disk->exists($animal->foto_animal)) {
         abort(404);
     }
-    return \Illuminate\Support\Facades\Storage::disk('public')->response($animal->foto_animal);
+
+    return $disk->response($animal->foto_animal);
 }
 public function getVeterinariosAsignados(Request $request, int $idFinca)
 {
