@@ -14,6 +14,11 @@ class AyudanteObserver
         $this->historial->registrar('Asignar ayudante a finca', 'ayudantes', $ayudante->id_finca);
     }
 
+    public function updated(Ayudante $ayudante): void
+    {
+        $this->historial->registrar('Reasignar ayudante a finca', 'ayudantes', $ayudante->id_finca);
+    }
+
     public function deleted(Ayudante $ayudante): void
     {
         $this->historial->registrar('Desasignar ayudante de finca', 'ayudantes', $ayudante->id_finca);

@@ -58,13 +58,23 @@ class GanaderoController extends Controller
             'n_arete'          => 'required|string|max:50|unique:animales,n_arete',
             'nombre_animal'    => 'nullable|string|max:100',
             'raza'             => 'nullable|string|max:100',
+            'sexo'             => 'nullable|in:M,F',
             'edad'             => 'nullable|integer',
             'peso'             => 'nullable|numeric',
             'estado'           => 'required|string|max:50',
             'fecha_nacimiento' => 'nullable|date',
+            'foto_animal'      => 'nullable|image|mimes:jpeg,jpg,png,webp|max:4096',
         ]);
 
-        $animal = $this->facade->crearAnimal($idFinca, $request->all());
+        $datos = $request->except('foto_animal');
+        if ($request->hasFile('foto_animal')) {
+            $datos['foto_animal'] = $request->file('foto_animal')->store('animales', 'public');
+        }
+        if (!empty($datos['fecha_nacimiento'])) {
+            $datos['edad'] = \Carbon\Carbon::parse($datos['fecha_nacimiento'])->age;
+        }
+
+        $animal = $this->facade->crearAnimal($idFinca, $datos);
         return response()->json(['message' => 'Animal creado correctamente.', 'animal' => $animal], 201);
     }
 
@@ -73,13 +83,23 @@ class GanaderoController extends Controller
         $request->validate([
             'nombre_animal'    => 'nullable|string|max:100',
             'raza'             => 'nullable|string|max:100',
+            'sexo'             => 'nullable|in:M,F',
             'edad'             => 'nullable|integer',
             'peso'             => 'nullable|numeric',
             'estado'           => 'sometimes|string|max:50',
             'fecha_nacimiento' => 'nullable|date',
+            'foto_animal'      => 'nullable|image|mimes:jpeg,jpg,png,webp|max:4096',
         ]);
 
-        $animal = $this->facade->editarAnimal($nArete, $request->all());
+        $datos = $request->except(['foto_animal', '_method']);
+        if ($request->hasFile('foto_animal')) {
+            $datos['foto_animal'] = $request->file('foto_animal')->store('animales', 'public');
+        }
+        if (!empty($datos['fecha_nacimiento'])) {
+            $datos['edad'] = \Carbon\Carbon::parse($datos['fecha_nacimiento'])->age;
+        }
+
+        $animal = $this->facade->editarAnimal($nArete, $datos);
         return response()->json(['message' => 'Animal actualizado correctamente.', 'animal' => $animal], 200);
     }
 
@@ -87,6 +107,40 @@ class GanaderoController extends Controller
     {
         $pesajes = $this->facade->getPesajes($nArete);
         return response()->json($pesajes, 200);
+    }
+
+    public function estimarPeso(Request $request)
+    {
+        $request->validate([
+            'foto' => 'required|image|mimes:jpeg,jpg,png,webp|max:8192',
+            'sexo' => 'required|in:M,F',
+        ]);
+
+        try {
+            $peso = $this->facade->estimarPeso($request->file('foto'), $request->sexo);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['peso_estimado_kg' => $peso], 200);
+    }
+
+    public function crearPesaje(Request $request, string $nArete)
+    {
+        $request->validate([
+            'peso_aproximado' => 'required|numeric|min:1',
+            'foto'            => 'nullable|image|mimes:jpeg,jpg,png,webp|max:8192',
+            'sexo'            => 'nullable|in:M,F',
+        ]);
+
+        $pesaje = $this->facade->crearPesaje(
+            $nArete,
+            (float) $request->peso_aproximado,
+            $request->file('foto'),
+            $request->sexo,
+        );
+
+        return response()->json(['message' => 'Pesaje registrado correctamente.', 'pesaje' => $pesaje], 201);
     }
 
     public function getTratamientos(Request $request, string $nArete)
@@ -99,6 +153,32 @@ class GanaderoController extends Controller
     {
         $resumen = $this->facade->getResumenFinca($idFinca);
         return response()->json($resumen, 200);
+    }
+
+    public function getRecordatorios(Request $request)
+    {
+        return response()->json($this->facade->getRecordatorios($request->user()->identificacion_usuario), 200);
+    }
+
+    public function getTodosAnimales(Request $request)
+    {
+        return response()->json($this->facade->getTodosAnimales($request->user()->identificacion_usuario), 200);
+    }
+
+    public function programarPesaje(Request $request, string $nArete)
+    {
+        $request->validate([
+            'proximo_pesaje'    => 'nullable|date',
+            'repetir_cada_dias' => 'nullable|integer|in:7,15,30,60,90',
+        ]);
+
+        $animal = $this->facade->programarPesaje(
+            $nArete,
+            $request->proximo_pesaje,
+            $request->repetir_cada_dias,
+        );
+
+        return response()->json(['message' => 'Recordatorio actualizado.', 'animal' => $animal], 200);
     }
 
     public function getVeterinarios()
@@ -142,6 +222,30 @@ class GanaderoController extends Controller
 {
     $animal = $this->facade->getAnimal($nArete);
     return response()->json($animal, 200);
+}
+
+public function registrarReporte(Request $request)
+{
+    $request->validate([
+        'id_finca'  => 'required|integer|exists:fincas,id_finca',
+        'cantidad'  => 'required|integer|min:1',
+    ]);
+    $this->facade->registrarReporte($request->id_finca, $request->cantidad);
+    return response()->json(['message' => 'Reporte registrado en historial.'], 201);
+}
+
+public function getFoto(Request $request, string $nArete)
+{
+    $animal = $this->facade->getAnimal($nArete);
+
+    /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
+    $disk = \Illuminate\Support\Facades\Storage::disk('public');
+
+    if (!$animal->foto_animal || !$disk->exists($animal->foto_animal)) {
+        abort(404);
+    }
+
+    return $disk->response($animal->foto_animal);
 }
 public function getVeterinariosAsignados(Request $request, int $idFinca)
 {
