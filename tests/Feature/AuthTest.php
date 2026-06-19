@@ -18,7 +18,6 @@ class AuthTest extends TestCase
     {
         parent::setUp();
 
-        // Crear roles requeridos
         Rol::insert([
             ['id_rol' => 1, 'nombre_rol' => 'Ganadero'],
             ['id_rol' => 2, 'nombre_rol' => 'Veterinario'],
@@ -150,7 +149,7 @@ class AuthTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-                 ->assertJsonPath('mensaje', 'Se ha enviado un enlace de restablecimiento al correo proporcionado');
+                 ->assertJsonPath('mensaje', 'Se ha enviado un código de verificación al correo proporcionado');
 
         $this->assertDatabaseHas('password_reset_tokens', ['email' => 'ganadero@test.com']);
     }
@@ -175,18 +174,18 @@ class AuthTest extends TestCase
 
     public function test_reset_password_exitoso(): void
     {
-        $user  = $this->crearUsuario();
-        $token = \Illuminate\Support\Str::random(64);
+        $user   = $this->crearUsuario();
+        $codigo = '123456';
 
         DB::table('password_reset_tokens')->insert([
             'email'      => 'ganadero@test.com',
-            'token'      => Hash::make($token),
+            'token'      => Hash::make($codigo),
             'created_at' => now(),
         ]);
 
         $response = $this->postJson('/api/auth/reset-password', [
             'correo'              => 'ganadero@test.com',
-            'token'               => $token,
+            'codigo'              => $codigo,
             'clave'               => 'NuevaClave123',
             'clave_confirmation'  => 'NuevaClave123',
         ]);
@@ -197,19 +196,19 @@ class AuthTest extends TestCase
         $this->assertDatabaseMissing('password_reset_tokens', ['email' => 'ganadero@test.com']);
     }
 
-    public function test_reset_password_token_invalido(): void
+    public function test_reset_password_codigo_invalido(): void
     {
         $this->crearUsuario();
 
         DB::table('password_reset_tokens')->insert([
             'email'      => 'ganadero@test.com',
-            'token'      => Hash::make('token_real'),
+            'token'      => Hash::make('123456'),
             'created_at' => now(),
         ]);
 
         $response = $this->postJson('/api/auth/reset-password', [
             'correo'             => 'ganadero@test.com',
-            'token'              => 'token_equivocado',
+            'codigo'             => '999999',
             'clave'              => 'NuevaClave123',
             'clave_confirmation' => 'NuevaClave123',
         ]);
@@ -221,9 +220,8 @@ class AuthTest extends TestCase
     {
         $response = $this->postJson('/api/auth/reset-password', [
             'correo' => 'ganadero@test.com',
-            'token'  => 'cualquiera',
+            'codigo' => '123456',
             'clave'  => 'NuevaClave123',
-            
         ]);
 
         $response->assertStatus(422);
