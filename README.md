@@ -152,7 +152,7 @@ El sistema maneja cuatro roles de usuario con permisos diferenciados:
 
 
 ## 4. Modelo de Base de Datos
-[Descripción General del Sistema](imagenes-documentacion-tecnica/modeloBaseDatos.png)
+[Base de datos](imagenes-documentacion-tecnica/modeloBaseDatos.png)
 ### Descripción de tablas
 
 **`roles`** — Catálogo de roles del sistema.  
