@@ -152,7 +152,7 @@ El sistema maneja cuatro roles de usuario con permisos diferenciados:
 
 
 ## 4. Modelo de Base de Datos
-[Descripción General del Sistema](imagenes-documentacion-tecnica/modeloBaseDatos.png)
+[Base de datos](imagenes-documentacion-tecnica/modeloBaseDatos.png)
 ### Descripción de tablas
 
 **`roles`** — Catálogo de roles del sistema.  
@@ -538,8 +538,10 @@ Persiste un pesaje para un animal.
 Microservicio independiente construido con **FastAPI** que expone un endpoint de predicción de peso bovino a partir de una foto lateral del animal.
 
 ### Pipeline de inferencia
-[Stack Tecnológico](imagenes-documentacion-tecnica/Pipeline1.png)
-[Stack Tecnológico](imagenes-documentacion-tecnica/Pipeline2.png)
+[Pipeline 1](imagenes-documentacion-tecnica/pipeline1.jpeg)
+[Pipeline 2](imagenes-documentacion-tecnica/pipeline2.jpeg)
+[Pipeline 3](imagenes-documentacion-tecnica/pipeline3.jpeg)
+[Pipeline 4](imagenes-documentacion-tecnica/pipeline4.jpeg)
 
 
 ### Endpoints del microservicio
