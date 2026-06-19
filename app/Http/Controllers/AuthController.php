@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use App\Models\User;
 use App\Models\HistorialAcciones;
 
@@ -101,37 +100,35 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $token = Str::random(64);
+        $codigo = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
         DB::table('password_reset_tokens')->updateOrInsert(
             ['email' => $request->correo],
             [
-                'token'      => Hash::make($token),
+                'token'      => Hash::make($codigo),
                 'created_at' => now(),
             ]
         );
 
-        $enlace = "http://localhost:5173/reset-password?token={$token}&correo={$request->correo}";
-
         Mail::raw(
-            "Recibiste una solicitud para restablecer tu contraseña.\n\nHaz clic en el siguiente enlace:\n\n{$enlace}\n\nEste enlace expira en 60 minutos.\n\nSi no solicitaste esto, ignora este correo.",
+            "Tu código de verificación es: {$codigo}\n\nEste código expira en 60 minutos.\n\nSi no solicitaste esto, ignora este correo.",
             function ($message) use ($request) {
                 $message->to($request->correo)
-                        ->subject('Restablecimiento de contraseña - BovWeight CR');
+                        ->subject('Código de verificación - BovWeight CR');
             }
         );
 
         return response()->json([
-            'mensaje' => 'Se ha enviado un enlace de restablecimiento al correo proporcionado',
+            'mensaje' => 'Se ha enviado un código de verificación al correo proporcionado',
         ], 200);
     }
 
     public function resetPassword(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'correo' => 'required|email',
-            'token'  => 'required|string',
-            'clave'  => 'required|string|min:8|confirmed',
+            'correo'             => 'required|email',
+            'codigo'             => 'required|string',
+            'clave'              => 'required|string|min:8|confirmed',
         ]);
 
         if ($validator->fails()) {
@@ -145,16 +142,16 @@ class AuthController extends Controller
             ->where('email', $request->correo)
             ->first();
 
-        if (!$registro || !Hash::check($request->token, $registro->token)) {
+        if (!$registro || !Hash::check($request->codigo, $registro->token)) {
             return response()->json([
-                'mensaje' => 'El enlace de restablecimiento es inválido o ha expirado',
+                'mensaje' => 'El código es inválido o ha expirado',
             ], 422);
         }
 
         if (now()->diffInMinutes($registro->created_at) > 60) {
             DB::table('password_reset_tokens')->where('email', $request->correo)->delete();
             return response()->json([
-                'mensaje' => 'El enlace de restablecimiento ha expirado',
+                'mensaje' => 'El código ha expirado',
             ], 422);
         }
 
